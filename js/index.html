@@ -12,13 +12,15 @@
 		<link type="text/css" rel="stylesheet" media="all" href="font/latolatinfonts.css" />
 		<link rel="stylesheet" type="text/css" href="style.css" />
 		
+		<script src="util/nestrandom.js"></script>
 		<script src="util/pathsegpolyfill.js"></script>
 		<script src="util/matrix.js"></script>
 		<script src="util/domparser.js"></script>
 		<script src="util/clipper.js"></script>
-		<script src="util/parallel.js"></script>
 		<script src="util/geometryutil.js"></script>
 		<script src="util/placementworker.js"></script>
+		<script src="util/commons.js"></script>
+		<script src="util/ga.js"></script>
 		<script src="svgparser.js"></script>
 		<script src="svgnest.js"></script>
 		
@@ -148,7 +150,7 @@
 				document.removeEventListener('dragleave', FileDragHover, false);
 				document.removeEventListener('drop', FileDrop, false);
 				
-				SvgNest.start(progress, renderSvg);
+				window.SvgNest.start(progress, renderSvg);
 				startlabel.innerHTML = 'Stop Nest';
 				start.className = 'button spinner';
 				configbutton.className = 'button config disabled';
@@ -162,10 +164,11 @@
 				}
 				
 				isworking = true;
+				stopnest();
 			}
 			
 			function stopnest(){
-				SvgNest.stop();
+				window.SvgNest.stop();
 				startlabel.innerHTML = 'Start Nest';
 				start.className = 'button start';
 				configbutton.className = 'button config';
@@ -257,8 +260,8 @@
 				svg = svg.cloneNode(false);
 				
 				// maintain stroke, fill etc of input
-				if(SvgNest.style){
-					svg.appendChild(SvgNest.style);
+				if(window.SvgNest.style){
+					svg.appendChild(window.SvgNest.style);
 				}
 				
 				var binHeight = parseInt(bins.children[0].getAttribute('height'));
@@ -504,10 +507,9 @@
 	<body>
 		<div id="splash">
 			<!-- a small splash page that explains what this thing is -->
-			<img src="img/logo.svg" alt="SVGnest" class="logo" />
+			<!--<img src="img/logo.svg" alt="SVGnest" class="logo" />
 			<h1 class="title">SVGnest</h1>
-			<em class="subscript">Open Source nesting</em>
-			
+			<em class="subscript">Open Source nesting</em>-->			
 			<ul class="nav">
 				<li class="button start" id="demo">Demo</li>
 				<li class="button upload" id="upload">Upload SVG</li>
@@ -606,7 +608,7 @@
 			</div>
 			
 			<div id="select">
-			<svg version="1.1" id="svg2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1147.592px" height="1397.27px" viewBox="0 0 1147.592 1397.27" enable-background="new 0 0 1147.592 1397.27" xml:space="preserve">
+	<!--		<svg version="1.1" id="svg2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="1147.592px" height="1397.27px" viewBox="0 0 1147.592 1397.27" enable-background="new 0 0 1147.592 1397.27" xml:space="preserve">
 <polygon fill="none" stroke="#010101" stroke-miterlimit="10" points="684.045,443.734 688.396,447.215 
 	666.488,450.935 666.488,432.651 "/>
 <polygon fill="none" stroke="#010101" stroke-miterlimit="10" points="697.067,404.901 697.067,415.601 
@@ -868,7 +870,6 @@
 	953.213,799.176 963.439,794.249 973.662,799.176 976.191,810.241 969.111,819.118 "/>
 <polygon fill="none" stroke="#010101" stroke-miterlimit="10" points="1053.174,801.182 1044.09,847.201 
 	1110.562,853.882 1126.557,825.053 "/>
-<rect width="511.822" height="339.235" fill="none" stroke="#010101" />
 
 	<path fill="none" stroke="#010101"  d="M746.843,60.679c-2.465,1.232-7.395,2.465-13.711,2.465c-14.635,0-25.65-9.243-25.65-26.266
 		c0-16.252,11.016-27.268,27.113-27.268c6.471,0,10.553,1.387,12.324,2.311l-1.617,5.469c-2.542-1.232-6.162-2.157-10.476-2.157
@@ -892,6 +893,16 @@
 		c-1.463-0.924-4.159-2.157-7.625-2.157c-4.006,0-6.239,2.311-6.239,5.084c0,3.081,2.233,4.467,7.086,6.316
 		c6.471,2.465,9.782,5.7,9.782,11.246c0,6.547-5.083,11.169-13.941,11.169c-4.082,0-7.856-1.001-10.476-2.542L972.611,55.44z"/>
 <polygon fill="none" stroke="#010101"  points="676.149,23 616.756,23 616.756,1 558.443,34.667 616.756,68.333 616.756,46.333 676.149,46.333 "/>
+
+<rect width="511.822" height="339.235" fill="none" stroke="#010101" />
+</svg>-->
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet" viewBox="0 0 640 640" width="640" height="640">
+	
+		<path d="M1 1L200 1L200 100L1 100L1 1Z" fill="none" stroke="#010101"></path>
+		<path d="M250 75L300 75L300 100L250 100L250 75Z" fill="none" stroke="#010101"></path>
+		<path d="M250 10L350 10L350 60L250 60L250 10Z" fill="none" stroke="#010101"></path>
 </svg>
 
 			</div>
@@ -905,3 +916,26 @@
 		</div>
 	</body>
 </html>
+<!--<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" preserveAspectRatio="xMidYMid meet" viewBox="0 0 640 640" width="640" height="640">
+	<defs>
+		<path d="M1 1L201 1L201 101L1 101L1 1Z" id="a1wn2F7cYK"></path>
+		<path d="M250 75L300 75L300 100L250 100L250 75Z" id="aQ4Lflt3d"></path>
+		<path d="M250 10L350 10L350 60L250 60L250 10Z" id="b2H6YyNvXs"></path>
+	</defs>
+	<g>
+		<g>
+			<g>
+				<use xlink:href="#a1wn2F7cYK" opacity="1" fill="#ddc5ca" fill-opacity="1"></use>
+			</g>
+			<g>
+				<use xlink:href="#aQ4Lflt3d" opacity="1" fill="#f90ac4" fill-opacity="1"></use>
+			</g>
+			<g>
+				<use xlink:href="#b2H6YyNvXs" opacity="1" fill="#23adca" fill-opacity="1"></use>
+			</g>
+		</g>
+	</g>
+</svg>
+-->
