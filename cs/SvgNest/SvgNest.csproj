@@ -60,6 +60,7 @@
     <Compile Include="PlacementWorker.cs" />
     <Compile Include="Position.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RandomNest.cs" />
     <Compile Include="SvgNest.cs" />
     <Compile Include="SvgNestConfig.cs" />
     <Compile Include="SvgParser.cs" />

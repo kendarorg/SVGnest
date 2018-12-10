@@ -9,7 +9,7 @@ namespace SvgNest
 {
     public class GeneticAlgorithm
     {
-        private Random random = new Random();
+        
         private Commons commons = new Commons();
         private SvgNestConfig config;
         private Rect binBounds;
@@ -83,7 +83,7 @@ namespace SvgNest
             };
             for (var i = 0; i < clone.Placements.Count; i++)
             {
-                var rand = random.NextDouble();
+                var rand = NestRandom.NextDouble();
                 if (rand < 0.01 * this.config.mutationRate)
                 {
                     // swap current part with next part
@@ -97,7 +97,7 @@ namespace SvgNest
                     }
                 }
 
-                rand = random.NextDouble();
+                rand = NestRandom.NextDouble();
                 if (rand < 0.01 * this.config.mutationRate)
                 {
                     clone.Rotations[i] = this._randomAngle(clone.Placements[i]);
@@ -117,7 +117,7 @@ namespace SvgNest
                 pop.splice(pop.IndexOf(exclude), 1);
             }
 
-            var rand = random.NextDouble();
+            var rand = NestRandom.NextDouble();
 
             var lower = 0;
             var weight = 1 / pop.Count;
@@ -153,7 +153,7 @@ namespace SvgNest
         private List<Individual> _mate(Individual male, Individual female)
         {
             var cutpoint =
-                (int)Math.Round(Math.Min(Math.Max(random.NextDouble(), 0.1), 0.9) * (male.Placements.Count - 1));
+                (int)Math.Round(Math.Min(Math.Max(NestRandom.NextDouble(), 0.1), 0.9) * (male.Placements.Count - 1));
 
             var gene1 = male.Placements.slice(0, cutpoint);
             var rot1 = male.Rotations.slice(0, cutpoint);

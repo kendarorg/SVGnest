@@ -405,7 +405,7 @@ namespace GeometryTest
         public void SearchStartPoint1()
         {
             var inside = true;
-            var searchEdges = true;
+            //var searchEdges = true;
             var A = new Polygon();
             A.Points = new List<Point>
             {
@@ -429,7 +429,7 @@ namespace GeometryTest
         public void SearchStartPoint2()
         {
             var inside = true;
-            var searchEdges = true;
+            //var searchEdges = true;
             var A = new Polygon();
             A.Points = new List<Point>
             {

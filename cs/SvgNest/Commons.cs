@@ -10,7 +10,7 @@ namespace SvgNest
 {
     public class Commons
     {
-        private Random _random = new Random();
+        
         public List<T> shuffle<T>(List<T> array)
         {
             var currentIndex = array.Count;
@@ -22,7 +22,7 @@ namespace SvgNest
             {
 
                 // Pick a remaining element...
-                randomIndex = (int)Math.Floor(_random.NextDouble() * currentIndex);
+                randomIndex = (int)Math.Floor(NestRandom.NextDouble() * currentIndex);
                 currentIndex -= 1;
 
                 // And swap it with the current element.

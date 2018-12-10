@@ -216,7 +216,7 @@ namespace SvgNest
 
                     clipper.AddPaths(combinedNfp, ClipperLib.PolyType.ptClip, true);
                     clipper.AddPaths(clipperBinNfp, ClipperLib.PolyType.ptSubject, true);
-                    WADDAFUCK
+                    //EDR XXX WADDAFUCK
                     if (!clipper.Execute(ClipperLib.ClipType.ctDifference, finalNfp, ClipperLib.PolyFillType.pftNonZero, ClipperLib.PolyFillType.pftNonZero))
                     {
                         continue;
