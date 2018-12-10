@@ -1,0 +1,117 @@
+﻿<html>
+	<head>
+		<script src="geometryutil.js"></script>
+		<script src="commons.js"></script>
+		<script>
+			
+			var segmentDistance  = function(){ 
+				var res = GeometryUtil.segmentDistance(
+					{x:0,y:0},{x:1,y:0},
+					{x:0,y:1},{x:1,y:1},
+					{x:0,y:-1}
+				);
+				console.log("GeometryUtil.segmentDistance(1)"+res);
+			}
+			var polygonSlideDistance= function(){
+				var A=[{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}];
+				var B=[{x:0,y:2},{x:1,y:2},{x:1,y:3},{x:0,y:3}];
+				res = GeometryUtil.polygonSlideDistance(
+					A,B,
+					{x:0,y:-1},
+					true
+				);
+				console.log("GeometryUtil.polygonSlideDistance(1)"+res);
+			}
+			
+			var noFitPolygon1=function(){
+	        	var inside = true;
+				var searchEdges=true;
+				var A=[{x:0,y:0},{x:1,y:0},{x:1,y:1},{x:0,y:1}];
+				var B=[{x:0,y:2},{x:1,y:2},{x:1,y:3},{x:0,y:3}];
+				var nfpList = GeometryUtil.noFitPolygon(
+					A,B,
+	                inside,
+	                searchEdges
+				);
+				
+				console.log("GeometryUtil.noFitPolygon1");
+				console.log(nfpList);
+			}
+			
+			var noFitPolygon2=function(){
+	        	var inside = true;
+				var searchEdges=true;
+				var A=[{x:0,y:0},{x:0.5,y:0},{x:0.5,y:0.5},{x:0,y:0.5}];
+				var B=[{x:0,y:2},{x:1,y:2},{x:1,y:3},{x:0,y:3}];
+				var nfpList = GeometryUtil.noFitPolygon(
+					A,B,
+	                inside,
+	                searchEdges
+				);
+				
+				console.log("GeometryUtil.noFitPolygon2");
+				console.log(nfpList);
+			}
+			
+			
+			
+			var noFitPolygon3=function(){
+	        	var inside = true;
+				var searchEdges=true;
+				var A=[{x:0,y:0},{x:0.5,y:0},{x:0.5,y:0.5},{x:0,y:0.5}];
+				var B=[{x:0,y:2},{x:1,y:2},{x:1,y:3},{x:0,y:3}];
+				var nfpList = GeometryUtil.noFitPolygon(
+					B,A,
+	                inside,
+	                searchEdges
+				);
+				
+				console.log("GeometryUtil.noFitPolygon3");
+				console.log(nfpList);
+			}
+			
+			var searchStartPoint1=function(){
+				var inside = true;
+				var NFPlist=undefined;
+				var A=[{x:0,y:0},{x:0.5,y:0},{x:0.5,y:0.5},{x:0,y:0.5}];
+				var B=[{x:0,y:2},{x:1,y:2},{x:1,y:3},{x:0,y:3}];
+				var res = GeometryUtil.searchStartPoint(
+					A,B,
+	                inside,
+	                NFPlist
+				);
+				
+				console.log("GeometryUtil.searchStartPoint1(null)"+res);
+			}
+			
+			var searchStartPoint2=function(){
+				var inside = true;
+				var NFPlist=undefined;
+				var A=[{x:0,y:0},{x:0.5,y:0},{x:0.5,y:0.5},{x:0,y:0.5}];
+				var B=[{x:0,y:2},{x:1,y:2},{x:1,y:3},{x:0,y:3}];
+				var res = GeometryUtil.searchStartPoint(
+					B,A,
+	                inside,
+	                NFPlist
+				);
+				
+				console.log("GeometryUtil.searchStartPoint2");
+				console.log(res);
+			}
+			
+			/*PointInPolygon
+			PolygonProjectionDistance
+			InNfp*/
+			
+			searchStartPoint1();
+			searchStartPoint2();
+			segmentDistance();
+			polygonSlideDistance();
+			noFitPolygon1();
+			noFitPolygon2();
+			noFitPolygon3();
+		</script>
+	</head>
+<body>
+</body>
+</html>

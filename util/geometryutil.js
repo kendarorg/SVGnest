@@ -9,9 +9,11 @@
 	
 	// private shared variables/methods
 	
+	//xx
 	// floating point comparison tolerance
 	var TOL = Math.pow(10, -9); // Floating point error is likely to be above 1 epsilon
 	
+	//xx
 	function _almostEqual(a, b, tolerance){
 		if(!tolerance){
 			tolerance = TOL
@@ -19,21 +21,24 @@
 		return Math.abs(a - b) < tolerance;
 	}
 	
+	//xx
 	// returns true if points are within the given distance
 	function _withinDistance(p1, p2, distance){
 		var dx = p1.x-p2.x;
 		var dy = p1.y-p2.y;
 		return ((dx*dx + dy*dy) < distance*distance);
 	}
-	
+	//xx
 	function _degreesToRadians(angle){
 		return angle*(Math.PI/180);
 	}
 	
+	//xx
 	function _radiansToDegrees(angle){
 		return angle*(180/Math.PI);
 	}
 	
+	//xx
 	// normalize vector into a unit vector
 	function _normalizeVector(v){
 		if(_almostEqual(v.x*v.x + v.y*v.y, 1)){
@@ -108,6 +113,7 @@
 		return true;
 	}
 	
+	//xx
 	// returns the intersection of AB and EF
 	// or null if there are no intersections or other numerical error
 	// if the infinite flag is set, AE and EF describe infinite lines without endpoints, they are finite line segments otherwise
@@ -158,9 +164,10 @@
 		
 		almostEqual: _almostEqual,
 		
+		//xx
 		// Bezier algos from http://algorithmist.net/docs/subdivision.pdf
 		QuadraticBezier: {
-			
+			//xx
 			// Roger Willcocks bezier flatness criterion
 			isFlat: function(p1, p2, c1, tol){
 				tol = 4*tol*tol;
@@ -173,7 +180,7 @@
 				
 				return (ux+uy <= tol);
 			},
-			
+			//xx
 			// turn Bezier into line segments via de Casteljau, returns an array of points
 			linearize: function(p1, p2, c1, tol){
 				var finished = [p1]; // list of points to return
@@ -194,7 +201,7 @@
 				}				
 				return finished;
 			},
-			
+			//xx
 			// subdivide a single Bezier
 			// t is the percent along the Bezier to divide at. eg. 0.5
 			subdivide: function(p1, p2, c1, t){
@@ -220,7 +227,9 @@
 			}
 		},
 		
+		//xx
 		CubicBezier: {
+			//xx
 			isFlat: function(p1, p2, c1, c2, tol){
 				tol = 16*tol*tol;
 			
@@ -245,7 +254,7 @@
 				
 				return (ux+uy <= tol);
 			},
-			
+			//xx
 			linearize: function(p1, p2, c1, c2, tol){
 				var finished = [p1]; // list of points to return
 				var todo = [{p1: p1, p2: p2, c1: c1, c2: c2}]; // list of Beziers to divide
@@ -305,8 +314,9 @@
 			}
 		},
 		
+		//xx
 		Arc: {
-		
+		//xx
 			linearize: function(p1, p2, rx, ry, angle, largearc, sweep, tol){
 				
 				var finished = [p2]; // list of points to return
@@ -355,7 +365,7 @@
 				}
 				return finished;				
 			},
-			
+			//xx
 			// convert from center point/angle sweep definition to SVG point and flag definition of arcs
 			// ported from http://commons.oreilly.com/wiki/index.php/SVG_Essentials/Paths
 			centerToSvg: function(center, rx, ry, theta1, extent, angleDegrees){
@@ -395,6 +405,7 @@
 				};
 			},
 			
+			//xx
 			// convert from SVG format arc to center point arc
 			svgToCenter: function(p1, p2, rx, ry, angleDegrees, largearc, sweep){
 				
@@ -485,6 +496,7 @@
 			
 		},
 		
+		//xx
 		// returns the rectangular bounding box of the given polygon
 		getPolygonBounds: function(polygon){
 			if(!polygon || polygon.length < 3){
@@ -520,6 +532,7 @@
 			};
 		},
 		
+		//xx
 		// return true if point is in the polygon, false if outside, and null if exactly on a point or edge
 		pointInPolygon: function(point, polygon){
 			if(!polygon || polygon.length < 3){
@@ -555,6 +568,7 @@
 			return inside;
 		},
 		
+		//xx
 		// returns the area of the polygon, assuming no self-intersections
 		// a negative area indicates counter-clockwise winding direction
 		polygonArea: function(polygon){
@@ -566,6 +580,7 @@
 			return 0.5*area;
 		},
 		
+		//xx
 		// todo: swap this for a more efficient sweep-line implementation
 		// returnEdges: if set, return all edges on A that have intersections
 		
@@ -677,6 +692,7 @@
 			return false;
 		},
 		
+		//xx
 		// placement algos as outlined in [1] http://www.cs.stir.ac.uk/~goc/papers/EffectiveHueristic2DAOR2013.pdf
 		
 		// returns a continuous polyline representing the normal-most edge of the given polygon
@@ -828,6 +844,7 @@
 			return edge;
 		},
 		
+		//xx
 		// returns the normal distance from p to a line segment defined by s1 s2
 		// this is basically algo 9 in [1], generalized for any vector direction
 		// eg. normal of [-1, 0] returns the horizontal distance between the point and the line segment
@@ -903,7 +920,7 @@
 			
 			return (pdotnorm - s1dotnorm + (s1dotnorm - s2dotnorm)*(s1dot - pdot)/(s1dot - s2dot));
 		},
-		
+		//xx
 		pointDistance: function(p, s1, s2, normal, infinite){
 			normal = _normalizeVector(normal);
 			
@@ -935,7 +952,9 @@
 			return -(pdotnorm - s1dotnorm + (s1dotnorm - s2dotnorm)*(s1dot - pdot)/(s1dot - s2dot));
 		},
 		
+		//xx
 		segmentDistance: function(A, B, E, F, direction){
+			
 			var normal = {
 				x: direction.y,
 				y: -direction.x
@@ -1098,7 +1117,7 @@
 
 			return Math.min.apply(Math, distances);
 		},
-		
+		//xx
 		polygonSlideDistance: function(A, B, direction, ignoreNegative){
 			
 			var A1, A2, B1, B2, Aoffsetx, Aoffsety, Boffsetx, Boffsety;
@@ -1164,6 +1183,7 @@
 			return distance;
 		},
 		
+		//xx
 		// project each point of B onto A in the given direction, and return the 
 		polygonProjectionDistance: function(A, B, direction){
 			var Boffsetx = B.offsetx || 0;
@@ -1220,6 +1240,7 @@
 			return distance;
 		},
 		
+		//xx
 		// searches for an arrangement of A and B such that they do not overlap
 		// if an NFP is given, only search for startpoints that have not already been traversed in the given NFP
 		searchStartPoint: function(A,B,inside,NFP){
@@ -1317,6 +1338,7 @@
 						}
 					}
 				}
+				return null;
 			}
 			
 			// returns true if point already exists in the given nfp
@@ -1339,6 +1361,7 @@
 			return null;
 		},
 		
+		//xx
 		isRectangle: function(poly, tolerance){
 			var bb = this.getPolygonBounds(poly);
 			tolerance = tolerance || TOL;
@@ -1355,6 +1378,7 @@
 			return true;
 		},
 		
+		//xx
 		// returns an interior NFP for the special case where A is a rectangle
 		noFitPolygonRectangle: function(A, B){	
 			var minAx = A[0].x;
@@ -1411,6 +1435,7 @@
 			]];
 		},
 		
+		//xx
 		// given a static polygon A and a movable polygon B, compute a no fit polygon by orbiting B about A
 		// if the inside flag is set, B is orbited inside of A rather than outside
 		// if the searchEdges flag is set, all edges of A are explored for NFPs - multiple 
@@ -1700,12 +1725,13 @@
 				}
 				
 				startpoint = this.searchStartPoint(A,B,inside,NFPlist);
-				
+				console.log(startpoint);
 			}
 			
 			return NFPlist;
 		},
 		
+		//xx
 		// given two polygons that touch at at least one point, but do not intersect. Return the outer perimeter of both polygons as a single continuous polygon
 		// A and B must have the same winding direction
 		polygonHull: function(A,B){
@@ -1867,6 +1893,7 @@
 			return C;
 		},
 		
+		//xx
 		rotatePolygon: function(polygon, angle){
 			var rotated = [];
 			angle = angle * Math.PI / 180;
