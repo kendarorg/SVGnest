@@ -134,15 +134,9 @@
         }
 
 		var startedAlready=false;
-        // progressCallback is called when _progress is made
-        // displayCallback is called when a new placement has been made
-        this.start = function(progressCallback, displayCallback) {
-        	if(startedAlready)return false;
-        	startedAlready=true;
-            if (!_svg || !_bin) {
-                return false;
-            }
-            if(progressCallback){
+		
+		this.preparePolygons= function(progressCallback, displayCallback) {
+			if(progressCallback){
             	_progressCallback = progressCallback;
             }
             if(displayCallback){
@@ -232,6 +226,18 @@
                     _tree[i].reverse();
                 }
             }
+            return true;
+		}
+		
+        // progressCallback is called when _progress is made
+        // displayCallback is called when a new placement has been made
+        this.start = function(progressCallback, displayCallback) {
+        	if(startedAlready)return false;
+        	startedAlready=true;
+            if (!_svg || !_bin) {
+                return false;
+            }
+            if (!this.preparePolygons(progressCallback, displayCallback)) return null;
 
             this.working = false;
             this._launchWorkers(_tree,_binPolygon);
@@ -291,6 +297,29 @@
                 }
             }
         }
+        
+        this.generateNfpForInside = function(pair, A, B, searchEdges){
+        	var nfp = null;
+        	if (GeometryUtil.isRectangle(A, 0.001)) {
+                nfp = GeometryUtil.noFitPolygonRectangle(A, B);
+            } else {
+                nfp = GeometryUtil.noFitPolygon(A, B, true, searchEdges);
+            }
+
+            // ensure all interior NFPs have the same winding direction
+            if (nfp && nfp.length > 0) {
+                for (var i = 0; i < nfp.length; i++) {
+                    if (GeometryUtil.polygonArea(nfp[i]) > 0) {
+                        nfp[i].reverse();
+                    }
+                }
+            } else {
+                // warning on null inner NFP
+                // this is not an error, as the part may simply be larger than the bin or otherwise unplaceable due to geometry
+                _commons.log('NFP Warning: ', pair.key);
+            }
+            return nfp;
+        }
 
        this._functionPair=function(pair) {
             if (!pair || pair.length == 0) {
@@ -305,26 +334,29 @@
             var nfp;
 
             if (pair.key.inside) {
-                if (GeometryUtil.isRectangle(A, 0.001)) {
-                    nfp = GeometryUtil.noFitPolygonRectangle(A, B);
-                } else {
-                    nfp = GeometryUtil.noFitPolygon(A, B, true, searchEdges);
-                }
-
-                // ensure all interior NFPs have the same winding direction
-                if (nfp && nfp.length > 0) {
-                    for (var i = 0; i < nfp.length; i++) {
-                        if (GeometryUtil.polygonArea(nfp[i]) > 0) {
-                            nfp[i].reverse();
-                        }
-                    }
-                } else {
-                    // warning on null inner NFP
-                    // this is not an error, as the part may simply be larger than the bin or otherwise unplaceable due to geometry
-                    _commons.log('NFP Warning: ', pair.key);
-                }
+                nfp = this.generateNfpForInside(pair, A, B, searchEdges);
             } else {
-                if (searchEdges) {
+            	nfp = this.generateStandadNfp(pair, searchEdges, A, B);
+                if(nfp==null)return null;
+
+                // generate nfps for children (holes of _parts) if any exist
+                if (useHoles && A.children && A.children.length > 0) {
+                	this.generateNfpWithHoles(B, A, searchEdges, nfp);
+                    
+                }
+            }
+
+
+
+            return {
+                key: pair.key,
+                value: nfp
+            };
+        }
+        
+        this.generateStandadNfp=function(pair, searchEdges, A, B){
+        	var nfp = [];
+        	if (searchEdges) {
                     nfp = GeometryUtil.noFitPolygon(A, B, false, searchEdges);
                 } else {
                     nfp = this._minkowskiDifference(A, B);
@@ -368,39 +400,31 @@
                         }
                     }
                 }
+                return nfp;
+        }
+        
+        this.generateNfpWithHoles = function(B, A, searchEdges, nfp){
+        	var Bbounds = GeometryUtil.getPolygonBounds(B);
 
-                // generate nfps for children (holes of _parts) if any exist
-                if (useHoles && A.children && A.children.length > 0) {
-                    var Bbounds = GeometryUtil.getPolygonBounds(B);
+            for (var i = 0; i < A.children.length; i++) {
+                var Abounds = GeometryUtil.getPolygonBounds(A.children[i]);
 
-                    for (var i = 0; i < A.children.length; i++) {
-                        var Abounds = GeometryUtil.getPolygonBounds(A.children[i]);
+                // no need to find nfp if B's bounding box is too big
+                if (Abounds.width > Bbounds.width && Abounds.height > Bbounds.height) {
 
-                        // no need to find nfp if B's bounding box is too big
-                        if (Abounds.width > Bbounds.width && Abounds.height > Bbounds.height) {
-
-                            var cnfp = GeometryUtil.noFitPolygon(A.children[i], B, true, searchEdges);
-                            // ensure all interior NFPs have the same winding direction
-                            if (cnfp && cnfp.length > 0) {
-                                for (var j = 0; j < cnfp.length; j++) {
-                                    if (GeometryUtil.polygonArea(cnfp[j]) < 0) {
-                                        cnfp[j].reverse();
-                                    }
-                                    nfp.push(cnfp[j]);
-                                }
+                    var cnfp = GeometryUtil.noFitPolygon(A.children[i], B, true, searchEdges);
+                    // ensure all interior NFPs have the same winding direction
+                    if (cnfp && cnfp.length > 0) {
+                        for (var j = 0; j < cnfp.length; j++) {
+                            if (GeometryUtil.polygonArea(cnfp[j]) < 0) {
+                                cnfp[j].reverse();
                             }
-
+                            nfp.push(cnfp[j]);
                         }
                     }
+
                 }
             }
-
-
-
-            return {
-                key: pair.key,
-                value: nfp
-            };
         }
 
         this._functionPlacements = function(placements, placelist) {
@@ -463,18 +487,14 @@
                 }
 
                 this._functionPlacements(placements, placelist);
+                return placements;
             } catch (err) {
                 _commons.log(err);
             }
-
+			return null;
         };
         
         this._launchWorkers = function(treeLocal,binPolygonLocal) {
-
-
-
-            var i, j;
-
             if (_geneticAlgorithm === null) {
                 // initiate new _geneticAlgorithm
                 var adam = treeLocal.slice(0);
@@ -491,7 +511,7 @@
 
 
             // evaluate all members of the population
-            for (i = 0; i < _geneticAlgorithm.population.length; i++) {
+            for (var i = 0; i < _geneticAlgorithm.population.length; i++) {
                 if (!_geneticAlgorithm.population[i].fitness) {
                     _individual = _geneticAlgorithm.population[i];
                     break;
@@ -508,7 +528,7 @@
             var rotations = _individual.rotation;
 
             var ids = [];
-            for (i = 0; i < placelist.length; i++) {
+            for (var i = 0; i < placelist.length; i++) {
                 ids.push(placelist[i].id);
                 placelist[i].rotation = rotations[i];
             }
@@ -517,7 +537,7 @@
             var key;
             var newCache = {};
 
-            for (i = 0; i < placelist.length; i++) {
+            for (var i = 0; i < placelist.length; i++) {
                 var part = placelist[i];
                 key = {
                     A: binPolygonLocal.id,
@@ -535,7 +555,7 @@
                 } else {
                     newCache[JSON.stringify(key)] = _nfpCache[JSON.stringify(key)]
                 }
-                for (j = 0; j < i; j++) {
+                for (var j = 0; j < i; j++) {
                     var placed = placelist[j];
                     key = {
                         A: placed.id,
@@ -558,12 +578,19 @@
 
             // only keep cache for one cycle
             _nfpCache = newCache;
+            
+            return this.generatePlacements(binPolygonLocal, ids, rotations, nfpPairs, placelist);
 
-            var worker = new PlacementWorker(binPolygonLocal, ids, rotations, _config);
+            
+        }
+        
+        this.generatePlacements=function(binPolygonLocal, ids, rotations, nfpPairs, placelist){
+        	var worker = new PlacementWorker(binPolygonLocal, ids, rotations, _config);
             
             var spawncount = 0;
 
             var generatedNfp = [];
+            var generatedPlacements = [];
             for (var w = 0; w < _config.iterations; w++) {
                 try {
                 	
@@ -571,7 +598,7 @@
                         generatedNfp.push(this._functionPair(nfpPairs[i]));
                     }
 
-                    this._functionGeneratedNfp(generatedNfp, worker, placelist);
+                    generatedPlacements.push(this._functionGeneratedNfp(generatedNfp, worker, placelist));
                     _progress = spawncount++/nfpPairs.length;
                     _commons.log(_progress);
                 } catch (err) {

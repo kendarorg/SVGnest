@@ -276,10 +276,23 @@ namespace SvgNest
             {
                 return null;
             }
+            if (!preparePolygons(progressCallback, displayCallback)) return null;
+
+            this.working = false;
+
+            
+            this.working = true;
+            _progressCallback(_progress);
+            return this._launchWorkers(_tree, _binPolygon);
+        }
+
+        private bool preparePolygons(Action<object> progressCallback, Action<object, object, object> displayCallback)
+        {
             if (null != progressCallback)
             {
                 _progressCallback = progressCallback;
             }
+
             if (null != displayCallback)
             {
                 _displayCallback = displayCallback;
@@ -306,13 +319,12 @@ namespace SvgNest
             this._offsetTree(_tree, 0.5 * _config.spacing);
 
 
-
             _binPolygon = SvgParser.polygonify(_bin);
             _binPolygon = this._cleanPolygon(_binPolygon);
 
             if (null == _binPolygon || _binPolygon.Count < 3)
             {
-                return null;
+                return false;
             }
 
             _binBounds = GeometryUtil.GetPolygonBounds(_binPolygon);
@@ -345,6 +357,7 @@ namespace SvgNest
                 {
                     xbinmin = _binPolygon[i].X;
                 }
+
                 if (_binPolygon[i].Y > ybinmax)
                 {
                     ybinmax = _binPolygon[i].Y;
@@ -386,12 +399,7 @@ namespace SvgNest
                 }
             }
 
-            this.working = false;
-
-            
-            this.working = true;
-            _progressCallback(_progress);
-            return this._launchWorkers(_tree, _binPolygon);
+            return true;
         }
 
         private List<Polygon> _minkowskiDifference(Polygon A, Polygon B)
@@ -447,122 +455,17 @@ namespace SvgNest
 
             if (pair.Key.Inside)
             {
-                if (GeometryUtil.IsRectangle(A, 0.001))
-                {
-                    nfp = GeometryUtil.NoFitPolygonRectangle(A, B);
-                }
-                else
-                {
-                    nfp = GeometryUtil.NoFitPolygon(A, B, true, searchEdges);
-                }
-
-                // ensure all interior NFPs have the same winding direction
-                if (null != nfp && nfp.Count > 0)
-                {
-                    for (var i = 0; i < nfp.Count; i++)
-                    {
-                        if (GeometryUtil.PolygonArea(nfp[i]) > 0)
-                        {
-                            nfp[i].Reverse();
-                        }
-                    }
-                }
-                else
-                {
-                    // warning on null inner NFP
-                    // this is not an error, as the part may simply be larger than the bin or otherwise unplaceable due to geometry
-                    _commons.log("NFP Warning: ", pair.Key);
-                }
+                nfp = generateNfpForInside(pair, A, B, searchEdges);
             }
             else
             {
-                if (searchEdges)
-                {
-                    nfp = GeometryUtil.NoFitPolygon(A, B, false, searchEdges);
-                }
-                else
-                {
-                    nfp = this._minkowskiDifference(A, B);
-                }
-                // sanity check
-                if (null == nfp || nfp.Count == 0)
-                {
-                    _commons.log("NFP Error: ", pair.Key);
-                    _commons.log("A: ", JsonConvert.SerializeObject(A));
-                    _commons.log("B: ", JsonConvert.SerializeObject(B));
-                    return null;
-                }
-
-                for (var i = 0; i < nfp.Count; i++)
-                {
-                    if (!searchEdges || i == 0)
-                    { // if searchedges is active, only the first NFP is guaranteed to pass sanity check
-                        if (Math.Abs(GeometryUtil.PolygonArea(nfp[i])) < Math.Abs(GeometryUtil.PolygonArea(A)))
-                        {
-                            _commons.log("NFP Area Error: ", Math.Abs(GeometryUtil.PolygonArea(nfp[i])), pair.Key);
-                            _commons.log("NFP:", JsonConvert.SerializeObject(nfp[i]));
-                            _commons.log("A: ", JsonConvert.SerializeObject(A));
-                            _commons.log("B: ", JsonConvert.SerializeObject(B));
-                            nfp.splice(i, 1);
-                            return null;
-                        }
-                    }
-                }
-
-                if (nfp.Count == 0)
-                {
-                    return null;
-                }
-
-                // for outer NFPs, the first is guaranteed to be the largest. Any subsequent NFPs that lie inside the first are holes
-                for (var i = 0; i < nfp.Count; i++)
-                {
-                    if (GeometryUtil.PolygonArea(nfp[i]) > 0)
-                    {
-                        nfp[i].Reverse();
-                    }
-
-                    if (i > 0)
-                    {
-                        if (GeometryUtil.PointInPolygon(nfp[i][0], nfp[0]).Value)
-                        {
-                            if (GeometryUtil.PolygonArea(nfp[i]) < 0)
-                            {
-                                nfp[i].Reverse();
-                            }
-                        }
-                    }
-                }
+                nfp = generateStandadNfp(pair, searchEdges, A, B);
+                if(nfp==null)return null;
 
                 // generate nfps for children (holes of _parts) if any exist
                 if (useHoles && A.Children != null && A.Children.Count > 0)
                 {
-                    var Bbounds = GeometryUtil.GetPolygonBounds(B);
-
-                    for (var i = 0; i < A.Children.Count; i++)
-                    {
-                        var Abounds = GeometryUtil.GetPolygonBounds(A.Children[i]);
-
-                        // no need to find nfp if B's bounding box is too big
-                        if (Abounds.Width > Bbounds.Width && Abounds.Height > Bbounds.Height)
-                        {
-
-                            var cnfp = GeometryUtil.NoFitPolygon(A.Children[i], B, true, searchEdges);
-                            // ensure all interior NFPs have the same winding direction
-                            if (null != cnfp && cnfp.Count > 0)
-                            {
-                                for (var j = 0; j < cnfp.Count; j++)
-                                {
-                                    if (GeometryUtil.PolygonArea(cnfp[j]) < 0)
-                                    {
-                                        cnfp[j].Reverse();
-                                    }
-                                    nfp.Add(cnfp[j]);
-                                }
-                            }
-
-                        }
-                    }
+                    generateNfpWithHoles(B, A, searchEdges, nfp);
                 }
             }
 
@@ -575,10 +478,136 @@ namespace SvgNest
             };
         }
 
+        private List<Polygon> generateStandadNfp(NfpPair pair, bool searchEdges, Polygon A, Polygon B)
+        {
+            var nfp = new List<Polygon>();
+            if (searchEdges)
+            {
+                nfp = GeometryUtil.NoFitPolygon(A, B, false, searchEdges);
+            }
+            else
+            {
+                nfp = this._minkowskiDifference(A, B);
+            }
+
+            // sanity check
+            if (null == nfp || nfp.Count == 0)
+            {
+                _commons.log("NFP Error: ", pair.Key);
+                _commons.log("A: ", JsonConvert.SerializeObject(A));
+                _commons.log("B: ", JsonConvert.SerializeObject(B));
+                return null;
+            }
+
+            for (var i = 0; i < nfp.Count; i++)
+            {
+                if (!searchEdges || i == 0)
+                {
+                    // if searchedges is active, only the first NFP is guaranteed to pass sanity check
+                    if (Math.Abs(GeometryUtil.PolygonArea(nfp[i])) < Math.Abs(GeometryUtil.PolygonArea(A)))
+                    {
+                        _commons.log("NFP Area Error: ", Math.Abs(GeometryUtil.PolygonArea(nfp[i])), pair.Key);
+                        _commons.log("NFP:", JsonConvert.SerializeObject(nfp[i]));
+                        _commons.log("A: ", JsonConvert.SerializeObject(A));
+                        _commons.log("B: ", JsonConvert.SerializeObject(B));
+                        nfp.splice(i, 1);
+                        return null;
+                    }
+                }
+            }
+
+            if (nfp.Count == 0)
+            {
+                return null;
+            }
+
+            // for outer NFPs, the first is guaranteed to be the largest. Any subsequent NFPs that lie inside the first are holes
+            for (var i = 0; i < nfp.Count; i++)
+            {
+                if (GeometryUtil.PolygonArea(nfp[i]) > 0)
+                {
+                    nfp[i].Reverse();
+                }
+
+                if (i > 0)
+                {
+                    if (GeometryUtil.PointInPolygon(nfp[i][0], nfp[0]).Value)
+                    {
+                        if (GeometryUtil.PolygonArea(nfp[i]) < 0)
+                        {
+                            nfp[i].Reverse();
+                        }
+                    }
+                }
+            }
+
+            return nfp;
+        }
+
+        private List<Polygon> generateNfpForInside(NfpPair pair, Polygon A, Polygon B, bool searchEdges)
+        {
+            List<Polygon> nfp;
+            if (GeometryUtil.IsRectangle(A, 0.001))
+            {
+                nfp = GeometryUtil.NoFitPolygonRectangle(A, B);
+            }
+            else
+            {
+                nfp = GeometryUtil.NoFitPolygon(A, B, true, searchEdges);
+            }
+
+            // ensure all interior NFPs have the same winding direction
+            if (null != nfp && nfp.Count > 0)
+            {
+                for (var i = 0; i < nfp.Count; i++)
+                {
+                    if (GeometryUtil.PolygonArea(nfp[i]) > 0)
+                    {
+                        nfp[i].Reverse();
+                    }
+                }
+            }
+            else
+            {
+                // warning on null inner NFP
+                // this is not an error, as the part may simply be larger than the bin or otherwise unplaceable due to geometry
+                _commons.log("NFP Warning: ", pair.Key);
+            }
+
+            return nfp;
+        }
+
+        private static void generateNfpWithHoles(Polygon B, Polygon A, bool searchEdges, List<Polygon> nfp)
+        {
+            var Bbounds = GeometryUtil.GetPolygonBounds(B);
+
+            for (var i = 0; i < A.Children.Count; i++)
+            {
+                var Abounds = GeometryUtil.GetPolygonBounds(A.Children[i]);
+
+                // no need to find nfp if B's bounding box is too big
+                if (Abounds.Width > Bbounds.Width && Abounds.Height > Bbounds.Height)
+                {
+                    var cnfp = GeometryUtil.NoFitPolygon(A.Children[i], B, true, searchEdges);
+                    // ensure all interior NFPs have the same winding direction
+                    if (null != cnfp && cnfp.Count > 0)
+                    {
+                        for (var j = 0; j < cnfp.Count; j++)
+                        {
+                            if (GeometryUtil.PolygonArea(cnfp[j]) < 0)
+                            {
+                                cnfp[j].Reverse();
+                            }
+
+                            nfp.Add(cnfp[j]);
+                        }
+                    }
+                }
+            }
+        }
+
         private IEnumerable<List<Polygon>> _launchWorkers(List<Polygon> treeLocal, Polygon binPolygonLocal)
         {
-            var i = 0;
-            var j = 0;
 
             if (_geneticAlgorithm == null)
             {
@@ -598,7 +627,7 @@ namespace SvgNest
 
 
             // evaluate all members of the population
-            for (i = 0; i < _geneticAlgorithm.population.Count; i++)
+            for (var i = 0; i < _geneticAlgorithm.population.Count; i++)
             {
                 if (null != _geneticAlgorithm.population[i].Fitness)
                 {
@@ -618,7 +647,7 @@ namespace SvgNest
             var rotations = _individual.Rotations;
 
             var ids = new List<int>();
-            for (i = 0; i < placelist.Count; i++)
+            for (var i = 0; i < placelist.Count; i++)
             {
                 ids.Add(placelist[i].Id);
                 placelist[i].Rotation = rotations[i];
@@ -629,7 +658,7 @@ namespace SvgNest
             NfpCacheKey key;
             var newCache = new Dictionary<string, List<Polygon>>();
 
-            for (i = 0; i < placelist.Count; i++)
+            for (var i = 0; i < placelist.Count; i++)
             {
                 var part = placelist[i];
                 key = new NfpCacheKey
@@ -653,7 +682,7 @@ namespace SvgNest
                 {
                     newCache[JsonConvert.SerializeObject(key)] = _nfpCache[JsonConvert.SerializeObject(key)];
                 }
-                for (j = 0; j < i; j++)
+                for (var j = 0; j < i; j++)
                 {
                     var placed = placelist[j];
                     key = new NfpCacheKey
@@ -683,11 +712,17 @@ namespace SvgNest
             // only keep cache for one cycle
             _nfpCache = newCache;
 
+            return generatePlacements(binPolygonLocal, ids, rotations, nfpPairs, placelist);
+        }
+
+        private IEnumerable<List<Polygon>> generatePlacements(Polygon binPolygonLocal, List<int> ids, List<double> rotations, List<NfpPair> nfpPairs, List<Polygon> placelist)
+        {
             var worker = new PlacementWorker(binPolygonLocal, ids, rotations, _config);
 
             var spawncount = 0;
 
             var generatedNfp = new List<Pair>();
+            var generatedPlacements = new List<List<Polygon>>();
             for (var w = 0; w < _config.iterations; w++)
             {
                 List<Polygon> res = null;
@@ -709,10 +744,13 @@ namespace SvgNest
 
                 if (res != null)
                 {
-                    yield return res;
+                    generatedPlacements.Add(res);
                 }
             }
+
+            return generatedPlacements;
         }
+
 
         private List<Polygon> _flattenTree(List<Polygon> t, bool hole)
         {
