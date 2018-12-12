@@ -41,7 +41,7 @@ namespace SvgNest
 
             return 0;
         }
-
+        private Commons _commons = new Commons();
         public void init(List<Polygon> adam, Polygon bin, SvgNestConfig config = null)
         {
             this.config = config ?? new SvgNestConfig
@@ -58,6 +58,8 @@ namespace SvgNest
             {
                 angles.Add(this._randomAngle(adam[i]));
             }
+
+            _commons.log("GeneticAlgorithm init: ",angles);
 
             this.population = new List<Individual> {new Individual{
                 Placements= adam,

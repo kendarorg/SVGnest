@@ -48,7 +48,7 @@ function GeneticAlgorithm() {
 	    for (var i = 0; i < adam.length; i++) {
 	        angles.push(this._randomAngle(adam[i]));
 	    }
-	    
+	    commons.log("GeneticAlgorithm init: ",angles);
 	    this.population = [{
 	        placement: adam,
 	        rotation: angles

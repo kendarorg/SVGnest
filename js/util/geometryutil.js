@@ -6,7 +6,7 @@
 
 (function(root){
 	'use strict';
-	
+	var _commons = new Commons();
 	// private shared variables/methods
 	
 	//xx
@@ -1725,7 +1725,7 @@
 				}
 				
 				startpoint = this.searchStartPoint(A,B,inside,NFPlist);
-				console.log(startpoint);
+				_commons.log(startpoint);
 			}
 			
 			return NFPlist;

@@ -283,6 +283,9 @@ namespace SvgNest
             
             this.working = true;
             _progressCallback(_progress);
+
+            Reverse(_tree);
+            _commons.log("Before _launchWorkers ", _tree, _binPolygon);
             return this._launchWorkers(_tree, _binPolygon);
         }
 
@@ -312,6 +315,7 @@ namespace SvgNest
                 // don't process bin as a part of the _tree
                 _parts.splice(binindex, 1);
             }
+
 
             // build _tree without bin
             _tree = this._getParts(_parts.slice(0));
@@ -399,7 +403,18 @@ namespace SvgNest
                 }
             }
 
+            
             return true;
+        }
+
+        private void Reverse(List<Polygon> tree)
+        {
+            tree.Reverse();
+            foreach (var item in tree)
+            {
+                Reverse(item.Children);
+            }
+
         }
 
         private List<Polygon> _minkowskiDifference(Polygon A, Polygon B)
@@ -651,9 +666,10 @@ namespace SvgNest
             {
                 ids.Add(placelist[i].Id);
                 placelist[i].Rotation = rotations[i];
-                placelist[i].Rotation = rotations[i];
             }
 
+            Reverse(placelist);
+            _commons.log("Placelist _launchWorkers ",placelist, rotations);
             var nfpPairs = new List<NfpPair>();
             NfpCacheKey key;
             var newCache = new Dictionary<string, List<Polygon>>();

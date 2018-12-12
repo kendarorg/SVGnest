@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ClipperLib;
 using Geometry;
+using Newtonsoft.Json;
 
 namespace SvgNest
 {
@@ -33,10 +34,54 @@ namespace SvgNest
 
             return array;
         }
+        public static bool IsSimpleType(Type type)
+        {
+            return
+                type.IsPrimitive ||
+                new Type[] {
+            typeof(Enum),
+            typeof(String),
+            typeof(Decimal),
+            typeof(DateTime),
+            typeof(DateTimeOffset),
+            typeof(TimeSpan),
+            typeof(Guid)
+                }.Contains(type) ||
+                Convert.GetTypeCode(type) != TypeCode.Object ||
+                (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>) && IsSimpleType(type.GetGenericArguments()[0]))
+                ;
+        }
 
         public void log(params object[] data)
         {
-            Console.WriteLine(data);
+            var result = string.Empty;
+            for (int i = 0; i < data.Length; i++)
+            {
+                object item = data[i];
+                if (null == item)
+                {
+                    result += "null";
+                }
+
+                else if (!IsSimpleType(item.GetType()))
+                {
+                    result +=  JsonConvert.SerializeObject(item, Newtonsoft.Json.Formatting.None,
+                        new JsonSerializerSettings
+                        {
+                            NullValueHandling = NullValueHandling.Ignore
+                        });
+                }
+                else
+                {
+                    result += item;
+                }
+
+                if (i < data.Length - 1)
+                {
+                    result += ",\r\n";
+                }
+            }
+            Console.WriteLine(result);
         }
 
         public Polygon rotatePolygon(Polygon polygon, double degrees)

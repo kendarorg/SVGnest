@@ -66,10 +66,33 @@
 
         return clone;
     };
-    
+    this.flatten=function(obj) {
+    	if(obj==null)return obj;
+	    var result = Object.create(obj);
+	    for(var key in result) {
+	    	if((result[key] !== Object(result[key]))||(result[key]==="undefined" || result[key]==undefined || result[key]==null)){
+	        	result[key] = result[key];
+	    	}else{
+	        	result[key] = this.flatten(result[key]);
+	        }
+	    }
+	    return result;
+	}
     this.log = function() {
             if (typeof console !== "undefined") {
-                console.log(arguments);
+            	var ars= "";
+            	for(var i=0;i<arguments.length;i++){
+            		if(arguments[i]==="undefined" || arguments[i]==undefined || arguments[i]==null){
+            			ars+="null"
+            		}else if((arguments[i] !== Object(arguments[i]))){
+        				ars+=arguments[i]+"";
+        			}else{
+        				ars+=JSON.stringify(this.flatten(arguments[i]));
+        			}
+        			
+            		if(i<arguments.length-1){ars+=",\r\n";}
+            	}
+                console.log(ars);
             }
         }
 }

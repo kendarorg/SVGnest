@@ -46,10 +46,10 @@
         this.working = false;
 
 		var _displayCallback = function(percent){
-			console.log(percent);
+			_commons.log(percent);
 		}
 		var _progressCallback = function renderSvg(svglist, efficiency, numplaced){
-			console.log("Rendering svg numplaced:"+numplaced);
+			_commons.log("Rendering svg numplaced:"+numplaced);
 		}
         var _geneticAlgorithm = null;
         var _best = null;
@@ -240,6 +240,7 @@
             if (!this.preparePolygons(progressCallback, displayCallback)) return null;
 
             this.working = false;
+            _commons.log("Before _launchWorkers ",_tree,_binPolygon);
             this._launchWorkers(_tree,_binPolygon);
             this.working = true;
             _progressCallback(_progress);
@@ -533,6 +534,7 @@
                 placelist[i].rotation = rotations[i];
             }
 
+			_commons.log("Placelist _launchWorkers ",placelist,rotations);
             var nfpPairs = [];
             var key;
             var newCache = {};
