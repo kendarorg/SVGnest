@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace Geometry
@@ -21,7 +22,7 @@ namespace Geometry
 
         public override string ToString()
         {
-            return string.Format("({0},{1})", X, Y);
+            return string.Format(CultureInfo.InvariantCulture, "({0},{1})", X, Y);
         }
     }
 
@@ -93,7 +94,7 @@ namespace Geometry
 
         public Polygon()
         {
-            Children = new List<Polygon>();
+            //Children = new List<Polygon>();
             Points = new List<Point>();
         }
         public int Id { get; set; }
@@ -149,7 +150,7 @@ namespace Geometry
             var result = new Polygon
             {
                 Points = Points.Select(p => action(p)).ToList(),
-                Children = deep?Children.Select(a=>a.Clone(deep)).ToList():new List<Polygon>(),
+                Children = deep?(Children!=null?Children.Select(a=>a.Clone(deep)).ToList():null):null,
                 X = X,
                 Y = Y,
                 Id=Id,
@@ -159,10 +160,14 @@ namespace Geometry
                 Height = Height,
                 Width = Width
             };
-            foreach (var ch in result.Children)
+            if (result.Children != null)
             {
-                ch.Parent = result;
+                foreach (var ch in result.Children)
+                {
+                    ch.Parent = result;
+                }
             }
+
             return result;
         }
 

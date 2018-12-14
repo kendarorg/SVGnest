@@ -28,20 +28,20 @@ namespace SvgNestTest
                 {
                     Points = new List<Point>
                     {
-                        new Point(100+250, 50+10),
-                        new Point(0 + 250, 50+10),
-                        new Point(0 + 250, 0+10),
-                        new Point(100 + 250, 0+10)
+                        new Point(50+250, 25+75),
+                        new Point(0 + 250, 25+75),
+                        new Point(0 + 250, +75),
+                        new Point(50 + 250, 0+75)
                     }
                 },
                 new Polygon
                 {
                     Points = new List<Point>
                     {
-                        new Point(50+250, 25+75),
-                        new Point(0 + 250, 25+75),
-                        new Point(0 + 250, +75),
-                        new Point(50 + 250, 0+75)
+                        new Point(100+250, 50+10),
+                        new Point(0 + 250, 50+10),
+                        new Point(0 + 250, 0+10),
+                        new Point(100 + 250, 0+10)
                     }
                 }
             };

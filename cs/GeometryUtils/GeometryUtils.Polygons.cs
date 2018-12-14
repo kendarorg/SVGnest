@@ -13,7 +13,7 @@ namespace Geometry
 				pt.X+=x;
 				pt.Y+=y;
 			}
-			if(deep){
+			if(deep && polygon.Children!=null){
 				foreach(var child in polygon.Children){
 					result.Children.Add(OffsetPolygon(child,x,y,deep));
 				}
@@ -921,7 +921,7 @@ namespace Geometry
             rotated.Y = bounds.Y;
             rotated.Width = bounds.Width;
             rotated.Height = bounds.Height;
-            if(deep){
+            if(deep && polygon.Children!=null ){
 	            foreach(var child in polygon.Children){
 	            	rotated.Children.Add(RotatePolygon(child,angle,deep));
 	            }

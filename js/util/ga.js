@@ -28,7 +28,7 @@ function GeneticAlgorithm() {
                 newpopulation.push(this._mutate(children[1]));
             }
         }
-
+//		commons.log("GeneticAlgorithm generation",newpopulation);
         this.population = newpopulation;
     }
     
@@ -41,6 +41,7 @@ function GeneticAlgorithm() {
 	        mutationRate: 10,
 	        rotations: 4
 	    };
+
 	    this.binBounds = GeometryUtil.getPolygonBounds(bin);
 
 	    // population is an array of individuals. Each individual is a object representing the order of insertion and the angle each part is rotated
@@ -48,7 +49,7 @@ function GeneticAlgorithm() {
 	    for (var i = 0; i < adam.length; i++) {
 	        angles.push(this._randomAngle(adam[i]));
 	    }
-	    commons.log("GeneticAlgorithm init: ",angles);
+//	    commons.log("GeneticAlgorithm init: ",angles);
 	    this.population = [{
 	        placement: adam,
 	        rotation: angles
@@ -84,6 +85,7 @@ function GeneticAlgorithm() {
         return 0;
     }
 
+	var cnt =0;
     //xx
     // returns a mutated individual with the given mutation rate
     this._mutate = function(individual) {
@@ -109,7 +111,8 @@ function GeneticAlgorithm() {
                 clone.rotation[i] = this._randomAngle(clone.placement[i]);
             }
         }
-
+//		commons.log("_mutate "+cnt+" clone",clone);
+		cnt++;
         return clone;
     }
 

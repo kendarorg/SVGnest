@@ -1386,6 +1386,7 @@ namespace ClipperLib
                     var p = paths[i][j];
                     p.X = (long)Math.Round(p.X * scale.Value);
                     p.Y = (long)Math.Round(p.Y * scale.Value);
+                    paths[i][j] = p;
                     j--;
                 }
 

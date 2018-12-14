@@ -106,21 +106,20 @@ namespace SvgNest
         }
 
 
-        private int _toTree(List<Polygon> list, int idstart = 0)
+        private int _toTree(List<Polygon> list, int idstart =0)
         {
             var parents = new List<Polygon>();
-            var i = 0;
-            var j = 0;
+
 
             // assign a unique id to each leaf
             var id = idstart;
 
-            for (i = 0; i < list.Count; i++)
+            for (var i = 0; i < list.Count; i++)
             {
                 var p = list[i];
 
                 var ischild = false;
-                for (j = 0; j < list.Count; j++)
+                for (var j = 0; j < list.Count; j++)
                 {
                     if (j == i)
                     {
@@ -128,7 +127,7 @@ namespace SvgNest
                     }
                     if (GeometryUtil.PointInPolygon(p[0], list[j]) == true)
                     {
-                        if (null != list[j].Children)
+                        if (null == list[j].Children)
                         {
                             list[j].Children = new List<Polygon>();
                         }
@@ -145,7 +144,7 @@ namespace SvgNest
                 }
             }
 
-            for (i = 0; i < list.Count; i++)
+            for (var i = 0; i < list.Count; i++)
             {
                 if (parents.IndexOf(list[i]) < 0)
                 {
@@ -154,13 +153,13 @@ namespace SvgNest
                 }
             }
 
-            for (i = 0; i < parents.Count; i++)
+            for (var i = 0; i < parents.Count; i++)
             {
                 parents[i].Id = id;
                 id++;
             }
 
-            for (i = 0; i < parents.Count; i++)
+            for (var i = 0; i < parents.Count; i++)
             {
                 if (null != parents[i].Children)
                 {
@@ -176,12 +175,10 @@ namespace SvgNest
         private List<Polygon> _getParts(List<Polygon> paths)
         {
 
-            var i = 0;
-            //var j = 0;
             var polygons = new List<Polygon>();
 
             var numChildren = paths.Count;
-            for (i = 0; i < numChildren; i++)
+            for (var i = 0; i < numChildren; i++)
             {
                 var poly = SvgParser.polygonify(paths[i]);
                 poly = this._cleanPolygon(poly);
@@ -193,7 +190,7 @@ namespace SvgNest
                     polygons.Add(poly);
                 }
             }
-
+            //_commons.log("_getParts cleanedpolygons ", polygons);
             // turn the list into a _tree
             this._toTree(polygons);
 
@@ -284,9 +281,11 @@ namespace SvgNest
             this.working = true;
             _progressCallback(_progress);
 
-            Reverse(_tree);
-            _commons.log("Before _launchWorkers ", _tree, _binPolygon);
-            return this._launchWorkers(_tree, _binPolygon);
+            
+            //_commons.log("Before _launchWorkers ", _tree, _binPolygon);
+            var result = this._launchWorkers(_tree, _binPolygon).ToList();
+            //_commons.log("Result", result);
+            return result;
         }
 
         private bool preparePolygons(Action<object> progressCallback, Action<object, object, object> displayCallback)
@@ -315,10 +314,13 @@ namespace SvgNest
                 // don't process bin as a part of the _tree
                 _parts.splice(binindex, 1);
             }
-
+            //_commons.log("preparePolygons _parts ", _parts);
 
             // build _tree without bin
             _tree = this._getParts(_parts.slice(0));
+
+
+//            _commons.log("preparePolygons _tree ", _tree);
 
             this._offsetTree(_tree, 0.5 * _config.spacing);
 
@@ -409,6 +411,7 @@ namespace SvgNest
 
         private void Reverse(List<Polygon> tree)
         {
+            if (tree == null) return;
             tree.Reverse();
             foreach (var item in tree)
             {
@@ -635,6 +638,8 @@ namespace SvgNest
                     return (int)(Math.Abs(GeometryUtil.PolygonArea(b)) - Math.Abs(GeometryUtil.PolygonArea(a)));
                 });
 
+                //_commons.log("_launchWorkers sortede adams ", adam);
+
                 _geneticAlgorithm = new GeneticAlgorithm();
                 _geneticAlgorithm.init(adam, binPolygonLocal, _config);
             }
@@ -644,7 +649,7 @@ namespace SvgNest
             // evaluate all members of the population
             for (var i = 0; i < _geneticAlgorithm.population.Count; i++)
             {
-                if (null != _geneticAlgorithm.population[i].Fitness)
+                if (null == _geneticAlgorithm.population[i].Fitness)
                 {
                     _individual = _geneticAlgorithm.population[i];
                     break;
@@ -668,8 +673,7 @@ namespace SvgNest
                 placelist[i].Rotation = rotations[i];
             }
 
-            Reverse(placelist);
-            _commons.log("Placelist _launchWorkers ",placelist, rotations);
+            //_commons.log("Placelist _launchWorkers ",placelist, rotations);
             var nfpPairs = new List<NfpPair>();
             NfpCacheKey key;
             var newCache = new Dictionary<string, List<Polygon>>();
@@ -727,7 +731,8 @@ namespace SvgNest
 
             // only keep cache for one cycle
             _nfpCache = newCache;
-
+            //_commons.log("Before generatePlacements nfpCache", _nfpCache);
+            _commons.log("Before generatePlacements nfpPairs", nfpPairs);
             return generatePlacements(binPolygonLocal, ids, rotations, nfpPairs, placelist);
         }
 
@@ -748,7 +753,7 @@ namespace SvgNest
                     {
                         generatedNfp.Add(this._functionPair(nfpPairs[ii]));
                     }
-
+                    
                     res = this._functionGeneratedNfp(generatedNfp, worker, placelist);
                     _progress = spawncount++ / nfpPairs.Count;
                     _commons.log(_progress);
@@ -822,14 +827,26 @@ namespace SvgNest
                 for (j = 0; j < placement[i].Count; j++)
                 {
                     var p = placement[i][j];
-                    var part = GeometryUtil.RotatePolygon(_tree[p.Id], p.Rotation,true);
+                    var part = GeometryUtil.RotatePolygon(_tree[p.Id+1], p.Rotation,true);
 					part = GeometryUtil.OffsetPolygon(part,p.X,p.Y,true);
-					
+                    
+                    part.X = 0;
+                    part.Y = 0;
+                    part.Rotation = 0;
+                    part.offsetx = 0;
+                    part.offsety = 0;
+                    part.Width = 0;
+                    part.Height = 0;
+
                     // the original path could have transforms and stuff on it, so apply our transforms on a group
                     //var partgroup = document.createElementNS(_svg.namespaceURI, "g");
                     //show it rotated and offseted
                     //partgroup.setAttribute("transform", "translate(" + p.x + " " + p.y + ") rotate(" + p.rotation + ")");
                     //partgroup.appendChild(clone[part.source]);
+                    if (binclone.Children == null)
+                    {
+                        binclone.Children = new List<Polygon>();
+                    }
                     binclone.Children.Add(part);
 
                     /*if (partOri.Children != null && partOri.Children.Count > 0)

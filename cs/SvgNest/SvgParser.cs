@@ -11,7 +11,7 @@ namespace SvgNest
     {
         public static Polygon polygonify(Polygon polygon)
         {
-            return polygon;
+            return polygon.Clone(true);
         }
     }
 }

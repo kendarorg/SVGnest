@@ -155,10 +155,12 @@
                 // don't process bin as a part of the _tree
                 _parts.splice(binindex, 1);
             }
+            
+//            _commons.logdeep(3,"preparePolygons _parts ", _parts);
 
             // build _tree without bin
             _tree = this._getParts(_parts.slice(0));
-
+//			_commons.log("preparePolygons _tree ", _tree);
             this._offsetTree(_tree, 0.5 * _config.spacing);
 
 
@@ -240,10 +242,12 @@
             if (!this.preparePolygons(progressCallback, displayCallback)) return null;
 
             this.working = false;
-            _commons.log("Before _launchWorkers ",_tree,_binPolygon);
-            this._launchWorkers(_tree,_binPolygon);
+//            _commons.log("Before _launchWorkers ",_tree,_binPolygon);
+            var result = this._launchWorkers(_tree,_binPolygon);
             this.working = true;
             _progressCallback(_progress);
+            //_commons.log("Result", result);
+            return result;
         };
 
        	
@@ -504,7 +508,7 @@
                 adam.sort(function(a, b) {
                     return Math.abs(GeometryUtil.polygonArea(b)) - Math.abs(GeometryUtil.polygonArea(a));
                 });
-
+//				_commons.log("_launchWorkers sortede adams ",adam);
                 _geneticAlgorithm = new GeneticAlgorithm();
                 _geneticAlgorithm.init(adam, binPolygonLocal, _config);
             }
@@ -534,7 +538,7 @@
                 placelist[i].rotation = rotations[i];
             }
 
-			_commons.log("Placelist _launchWorkers ",placelist,rotations);
+//			_commons.log("Placelist _launchWorkers ",placelist,rotations);
             var nfpPairs = [];
             var key;
             var newCache = {};
@@ -580,6 +584,8 @@
 
             // only keep cache for one cycle
             _nfpCache = newCache;
+//            _commons.log("Before generatePlacements nfpCache",_nfpCache);
+            _commons.log("Before generatePlacements nfpPairs",nfpPairs);
             
             return this.generatePlacements(binPolygonLocal, ids, rotations, nfpPairs, placelist);
 
@@ -594,19 +600,24 @@
             var generatedNfp = [];
             var generatedPlacements = [];
             for (var w = 0; w < _config.iterations; w++) {
+            	var res=null;
                 try {
                 	
                     for (var i = 0; i < nfpPairs.length; i++) {
                         generatedNfp.push(this._functionPair(nfpPairs[i]));
                     }
-
-                    generatedPlacements.push(this._functionGeneratedNfp(generatedNfp, worker, placelist));
+					
+					res = this._functionGeneratedNfp(generatedNfp, worker, placelist);
                     _progress = spawncount++/nfpPairs.length;
                     _commons.log(_progress);
                 } catch (err) {
                     _commons.log(err);
                 }
+                if(res!=null){
+                	generatedPlacements.push(res);
+                }
             }
+            return generatedPlacements;
         }
 
         this._toTree = function(list, idstart) {
@@ -678,6 +689,8 @@
                     polygons.push(poly);
                 }
             }
+            
+//            _commons.log("_getParts cleanedpolygons ", polygons);
 
             // turn the list into a _tree
             this._toTree(polygons);

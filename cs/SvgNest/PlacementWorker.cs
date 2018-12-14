@@ -361,7 +361,7 @@ namespace SvgNest
             var result = new Polygon();
             for (var i = 0; i < res.Count; i++)
             {
-                result.Add(new Point{X=res[i].X,Y= res[i].X});
+                result.Add(new Point{X=res[i].X,Y= res[i].Y});
             }
             return result;
         }

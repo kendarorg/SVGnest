@@ -59,7 +59,7 @@ namespace SvgNest
                 angles.Add(this._randomAngle(adam[i]));
             }
 
-            _commons.log("GeneticAlgorithm init: ",angles);
+            //_commons.log("GeneticAlgorithm init: ",angles);
 
             this.population = new List<Individual> {new Individual{
                 Placements= adam,
@@ -68,13 +68,17 @@ namespace SvgNest
 
             }};
 
+            //_commons.log("Mutation started", this.population.Count, config.populationSize);
             while (this.population.Count < config.populationSize)
             {
                 var mutant = this._mutate(this.population[0]);
                 this.population.Add(mutant);
             }
+
+            //_commons.log("Mutation completed", this.population);
         }
 
+        private int mutations = 0;
         // returns a mutated individual with the given mutation rate
         private Individual _mutate(Individual individual)
         {
@@ -86,7 +90,7 @@ namespace SvgNest
             for (var i = 0; i < clone.Placements.Count; i++)
             {
                 var rand = NestRandom.NextDouble();
-                if (rand < 0.01 * this.config.mutationRate)
+                if (rand < 0.01 * (double)this.config.mutationRate)
                 {
                     // swap current part with next part
                     var j = i + 1;
@@ -100,12 +104,13 @@ namespace SvgNest
                 }
 
                 rand = NestRandom.NextDouble();
-                if (rand < 0.01 * this.config.mutationRate)
+                if (rand < 0.01 * (double)this.config.mutationRate)
                 {
                     clone.Rotations[i] = this._randomAngle(clone.Placements[i]);
                 }
             }
-
+            //commons.log("_mutate "+ mutations+" clone",clone);
+            mutations++;
             return clone;
         }
 
@@ -121,9 +126,9 @@ namespace SvgNest
 
             var rand = NestRandom.NextDouble();
 
-            var lower = 0;
-            var weight = 1 / pop.Count;
-            var upper = weight;
+            double lower = 0;
+            double weight = 1 / (double)pop.Count;
+            double upper = weight;
 
             for (var i = 0; i < pop.Count; i++)
             {
@@ -133,7 +138,7 @@ namespace SvgNest
                     return pop[i];
                 }
                 lower = upper;
-                upper += 2 * weight * ((pop.Count - i) / pop.Count);
+                upper += 2 * weight * (((double)pop.Count - (double)i) / (double)pop.Count);
             }
 
             return pop[0];
@@ -207,7 +212,7 @@ namespace SvgNest
                 {
                     return -1;
                 }
-                if (b.Fitness == null && a.Fitness != null)
+                if (a.Fitness != null && a.Fitness == null)
                 {
                     return 1;
                 }
@@ -215,7 +220,9 @@ namespace SvgNest
                 {
                     return 0;
                 }
-                return (int)(a.Fitness.Value - b.Fitness.Value);
+
+                var result = a.Fitness.Value - b.Fitness.Value;
+                return result>0?1:(result<0?-1:0);
             });
 
             // fittest individual is preserved in the new generation (elitism)

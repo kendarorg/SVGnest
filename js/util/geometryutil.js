@@ -1725,7 +1725,7 @@
 				}
 				
 				startpoint = this.searchStartPoint(A,B,inside,NFPlist);
-				_commons.log(startpoint);
+//				_commons.log(startpoint);
 			}
 			
 			return NFPlist;

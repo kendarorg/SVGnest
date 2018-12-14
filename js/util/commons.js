@@ -14,6 +14,7 @@
             temporaryValue = array[currentIndex];
             array[currentIndex] = array[randomIndex];
             array[randomIndex] = temporaryValue;
+            
         }
 
         return array;
@@ -66,15 +67,23 @@
 
         return clone;
     };
-    this.flatten=function(obj) {
+    this.flatten=function(obj,depth) {
     	if(obj==null)return obj;
+    	if(depth<=0)return null;
 	    var result = Object.create(obj);
 	    for(var key in result) {
-	    	if((result[key] !== Object(result[key]))||(result[key]==="undefined" || result[key]==undefined || result[key]==null)){
-	        	result[key] = result[key];
-	    	}else{
-	        	result[key] = this.flatten(result[key]);
-	        }
+	    	try{
+		    	if (typeof result[key] === "function"|| Object.prototype.toString.call(result[key]) == '[object Function]') {
+		    		//result[key]="function";
+		    	}else if((result[key] !== Object(result[key]))||(result[key]==="undefined" || result[key]==undefined || result[key]==null)){
+		        	result[key] = result[key];
+		    	}else{
+		        	result[key] = this.flatten(result[key],depth-1);
+		        }
+	        
+	    	}catch{
+	    		
+	    	}
 	    }
 	    return result;
 	}
@@ -88,6 +97,25 @@
         				ars+=arguments[i]+"";
         			}else{
         				ars+=JSON.stringify(this.flatten(arguments[i]));
+        			}
+        			
+            		if(i<arguments.length-1){ars+=",\r\n";}
+            	}
+                console.log(ars);
+            }
+        }
+        
+     this.logdeep = function() {
+            if (typeof console !== "undefined") {
+            	var ars= "";
+            	var depth = arguments[0];
+            	for(var i=1;i<arguments.length;i++){
+            		if(arguments[i]==="undefined" || arguments[i]==undefined || arguments[i]==null){
+            			ars+="null"
+            		}else if((arguments[i] !== Object(arguments[i]))){
+        				ars+=arguments[i]+"";
+        			}else{
+        				ars+=JSON.stringify(this.flatten(arguments[i],depth));
         			}
         			
             		if(i<arguments.length-1){ars+=",\r\n";}

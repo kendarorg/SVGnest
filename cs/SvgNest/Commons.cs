@@ -15,7 +15,6 @@ namespace SvgNest
         public List<T> shuffle<T>(List<T> array)
         {
             var currentIndex = array.Count;
-            T temporaryValue = default(T);
             int randomIndex;
 
             // While there remain elements to shuffle...
@@ -27,9 +26,10 @@ namespace SvgNest
                 currentIndex -= 1;
 
                 // And swap it with the current element.
-                temporaryValue = array[currentIndex];
+                var temporaryValue = array[currentIndex];
                 array[currentIndex] = array[randomIndex];
                 array[randomIndex] = temporaryValue;
+                //Console.WriteLine("SWapped "+currentIndex+","+randomIndex);
             }
 
             return array;

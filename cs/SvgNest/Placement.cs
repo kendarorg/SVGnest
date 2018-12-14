@@ -9,7 +9,7 @@ namespace SvgNest
 {
     public class Placement
     {
-        public double? Fitness = double.MaxValue;
+        public double? Fitness = null;
         public List<List<Position>> Placements;
         public List<Polygon> Paths;
         public double Area;
