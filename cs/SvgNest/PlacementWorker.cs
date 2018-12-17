@@ -90,7 +90,7 @@ namespace SvgNest
                         continue;
                     }
                     var binNfp = this.nfpCache[key];
-                    if (binNfp.Count == 0)
+                    if (binNfp==null || binNfp.Count == 0)
                     {
                         continue;;
                     }

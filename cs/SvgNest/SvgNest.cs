@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
@@ -8,6 +9,8 @@ using System.Threading.Tasks;
 using ClipperLib;
 using Geometry;
 using Newtonsoft.Json;
+using Svg;
+using Point = Geometry.Point;
 
 namespace SvgNest
 {
@@ -27,13 +30,14 @@ namespace SvgNest
         public bool working { get; set; }
 
         private Action<object> _progressCallback = Console.WriteLine;
-        private Action<object,object,object> _displayCallback = (a, b, c) => { };
+        private Action<object, object, object> _displayCallback = (a, b, c) => { };
         private Polygon _bin;
         private List<Polygon> _parts;
         private Polygon _binPolygon;
         private Individual _individual;
         private Rect _binBounds;
         private Placement _best;
+        private SvgElementCollection _svgCollection;
 
         // converts a polygon from normal float coordinates to integer coordinates used by clipper, as well as x/y -> X/Y
         private Path _svgToClipper(Polygon polygon)
@@ -106,7 +110,7 @@ namespace SvgNest
         }
 
 
-        private int _toTree(List<Polygon> list, int idstart =0)
+        private int _toTree(List<Polygon> list, int idstart = 0)
         {
             var parents = new List<Polygon>();
 
@@ -197,22 +201,6 @@ namespace SvgNest
             return polygons;
         }
 
-        public List<Polygon> parsesvg(List<Polygon> svg)
-        {
-            _svg = svg;
-            _tree = _getParts(_svg);
-            return _svg;
-        }
-
-        public void setbin(Polygon element)
-        {
-            if (null == _svg)
-            {
-                return;
-            }
-            _bin = element;
-        }
-
 
         // use the clipper library to return an offset to the given polygon. Positive offset expands the polygon, negative contracts
         // note that this returns an array of polygons
@@ -277,11 +265,11 @@ namespace SvgNest
 
             this.working = false;
 
-            
+
             this.working = true;
             _progressCallback(_progress);
 
-            
+
             //_commons.log("Before _launchWorkers ", _tree, _binPolygon);
             var result = this._launchWorkers(_tree, _binPolygon).ToList();
             //_commons.log("Result", result);
@@ -314,13 +302,14 @@ namespace SvgNest
                 // don't process bin as a part of the _tree
                 _parts.splice(binindex, 1);
             }
+
             //_commons.log("preparePolygons _parts ", _parts);
 
             // build _tree without bin
             _tree = this._getParts(_parts.slice(0));
 
 
-//            _commons.log("preparePolygons _tree ", _tree);
+            //            _commons.log("preparePolygons _tree ", _tree);
 
             this._offsetTree(_tree, 0.5 * _config.spacing);
 
@@ -405,7 +394,7 @@ namespace SvgNest
                 }
             }
 
-            
+
             return true;
         }
 
@@ -478,7 +467,7 @@ namespace SvgNest
             else
             {
                 nfp = generateStandadNfp(pair, searchEdges, A, B);
-                if(nfp==null)return null;
+                if (nfp == null) return null;
 
                 // generate nfps for children (holes of _parts) if any exist
                 if (useHoles && A.Children != null && A.Children.Count > 0)
@@ -753,7 +742,7 @@ namespace SvgNest
                     {
                         generatedNfp.Add(this._functionPair(nfpPairs[ii]));
                     }
-                    
+
                     res = this._functionGeneratedNfp(generatedNfp, worker, placelist);
                     _progress = spawncount++ / nfpPairs.Count;
                     _commons.log(_progress);
@@ -791,7 +780,7 @@ namespace SvgNest
         private List<Polygon> _applyPlacement(List<List<Position>> placement)
         {
             //throw new NotImplementedException();
-            
+
             var i = 0;
             var j = 0;
             //var k = 0;
@@ -827,9 +816,9 @@ namespace SvgNest
                 for (j = 0; j < placement[i].Count; j++)
                 {
                     var p = placement[i][j];
-                    var part = GeometryUtil.RotatePolygon(_tree[p.Id+1], p.Rotation,true);
-					part = GeometryUtil.OffsetPolygon(part,p.X,p.Y,true);
-                    
+                    var part = GeometryUtil.RotatePolygon(_tree[p.Id + 1], p.Rotation, true);
+                    part = GeometryUtil.OffsetPolygon(part, p.X, p.Y, true);
+
                     part.X = 0;
                     part.Y = 0;
                     part.Rotation = 0;
@@ -911,16 +900,16 @@ namespace SvgNest
                         numPlacedParts++;
                     }
                 }
-                _displayCallback(null,placedArea / totalArea, numPlacedParts + "/" + numParts);
+                _displayCallback(null, placedArea / totalArea, numPlacedParts + "/" + numParts);
                 this.working = false;
                 return this._applyPlacement(_best.Placements);
             }
             else
             {
-                _displayCallback(null,null,null);
+                _displayCallback(null, null, null);
                 return null;
             }
-            
+
         }
 
         private List<Polygon> _functionGeneratedNfp(List<Pair> generatedNfp, PlacementWorker worker, List<Polygon> placelist)
@@ -959,6 +948,112 @@ namespace SvgNest
                 return null;
             }
 
+        }
+
+
+
+        public List<Polygon> ToPolygons(SvgElementCollection svgChildren)
+        {
+            var result = new List<Polygon>();
+
+            foreach (var item in svgChildren)
+            {
+                var poly = CreatePolygon(item);
+                if (poly != null)
+                {
+                    result.Add(poly);
+                }
+            }
+            return result;
+        }
+
+        private static Polygon CreatePolygon(SvgElement item)
+        {
+            Polygon poly = null;
+            var polygon = item as SvgPolygon;
+            var path = item as SvgPath;
+            var rect = item as SvgRectangle;
+            var transform = item.Transforms;
+            if (polygon != null)
+            {
+                poly = new Polygon();
+                for (var index = 0; index < polygon.Points.Count; index += 2)
+                {
+                    var x = polygon.Points[index];
+                    var y = polygon.Points[index + 1];
+                    poly.Points.Add(new Point(x, y));
+                }
+            }
+            else if (path != null)
+            {
+                poly = new Polygon();
+
+                for (var index = 0; index < path.PathData.Count - 1; index++)
+                {
+                    var segment = path.PathData[index];
+                    //var y = polygon.Points[index + 1];
+                    var pointfStart = (System.Drawing.PointF)segment.Start;
+                    var pointfEnd = (System.Drawing.PointF)segment.End;
+
+                    poly.Points.Add(new Point(pointfStart.X, pointfStart.Y));
+                    if (!GeometryUtil.AlmostEqual(pointfStart.X, pointfEnd.X) &&
+                        !GeometryUtil.AlmostEqual(pointfStart.Y, pointfEnd.Y))
+                    {
+                        poly.Points.Add(new Point(pointfEnd.X, pointfEnd.Y));
+                    }
+
+
+                }
+
+            }
+            else if (rect != null)
+            {
+                poly = new Polygon();
+
+                poly.Points.Add(new Point(rect.X, rect.Y));
+                poly.Points.Add(new Point(rect.X, rect.Y + rect.Height));
+                poly.Points.Add(new Point(rect.X + rect.Width, rect.Y + rect.Width));
+                poly.Points.Add(new Point(rect.X + rect.Width, rect.Y));
+            }
+
+            if (transform != null && transform.Count > 0)
+            {
+                throw new Exception("Transformations not supported");
+            }
+
+            return poly;
+        }
+
+
+
+        public List<Polygon> parsesvg(List<Polygon> svg)
+        {
+            _svg = svg;
+            _tree = _getParts(_svg);
+            return _svg;
+        }
+
+        public void setbin(Polygon element)
+        {
+            if (null == _svg)
+            {
+                return;
+            }
+            _bin = element;
+        }
+
+        public List<SvgDocument> ToSvg(List<List<Polygon>> result,SvgDocument src)
+        {
+            foreach (var block in result)
+            {
+                var clone = new  SvgDocument() as SvgElement;
+                foreach (var item in block)
+                {
+
+                }
+
+
+            }
         }
     }
 }
