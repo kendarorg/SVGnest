@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -14,20 +15,20 @@ namespace SvgNest
 
     public class PlacementWorker
     {
-        public Dictionary<string, List<Polygon>> nfpCache;
+        public ConcurrentDictionary<string, List<Polygon>> nfpCache;
         private Polygon _binPolygon;
         private List<int> _ids;
         private List<double> _rotations;
         private SvgNestConfig _config;
         private Commons _commons;
 
-        public PlacementWorker(Polygon binPolygon, List<int> ids, List<double> rotations, SvgNestConfig config)
+        public PlacementWorker(Commons commons,Polygon binPolygon, List<int> ids, List<double> rotations, SvgNestConfig config)
         {
             this._binPolygon = binPolygon;
             this._ids = ids;
             this._rotations = rotations;
             this._config = config;
-            _commons = new Commons();
+            _commons = commons;
         }
 
         public Placement placePaths(List<Polygon> paths)

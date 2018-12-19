@@ -9,8 +9,13 @@ namespace SvgNest
 {
     public class GeneticAlgorithm
     {
-        
-        private Commons commons = new Commons();
+
+        public GeneticAlgorithm(Commons commons,NestRandom random)
+        {
+            this.commons = commons;
+            this._random = random;
+        }
+        private Commons commons;
         private SvgNestConfig config;
         private Rect binBounds;
         public List<Individual> population;
@@ -41,7 +46,7 @@ namespace SvgNest
 
             return 0;
         }
-        private Commons _commons = new Commons();
+        
         public void init(List<Polygon> adam, Polygon bin, SvgNestConfig config = null)
         {
             this.config = config ?? new SvgNestConfig
@@ -79,6 +84,9 @@ namespace SvgNest
         }
 
         private int mutations = 0;
+
+        private NestRandom _random;
+
         // returns a mutated individual with the given mutation rate
         private Individual _mutate(Individual individual)
         {
@@ -89,7 +97,7 @@ namespace SvgNest
             };
             for (var i = 0; i < clone.Placements.Count; i++)
             {
-                var rand = NestRandom.NextDouble();
+                var rand = _random.NextDouble();
                 if (rand < 0.01 * (double)this.config.mutationRate)
                 {
                     // swap current part with next part
@@ -103,7 +111,7 @@ namespace SvgNest
                     }
                 }
 
-                rand = NestRandom.NextDouble();
+                rand = _random.NextDouble();
                 if (rand < 0.01 * (double)this.config.mutationRate)
                 {
                     clone.Rotations[i] = this._randomAngle(clone.Placements[i]);
@@ -124,7 +132,7 @@ namespace SvgNest
                 pop.splice(pop.IndexOf(exclude), 1);
             }
 
-            var rand = NestRandom.NextDouble();
+            var rand = _random.NextDouble();
 
             double lower = 0;
             double weight = 1 / (double)pop.Count;
@@ -160,7 +168,7 @@ namespace SvgNest
         private List<Individual> _mate(Individual male, Individual female)
         {
             var cutpoint =
-                (int)Math.Round(Math.Min(Math.Max(NestRandom.NextDouble(), 0.1), 0.9) * (male.Placements.Count - 1));
+                (int)Math.Round(Math.Min(Math.Max(_random.NextDouble(), 0.1), 0.9) * (male.Placements.Count - 1));
 
             var gene1 = male.Placements.slice(0, cutpoint);
             var rot1 = male.Rotations.slice(0, cutpoint);
@@ -187,7 +195,7 @@ namespace SvgNest
                     rot2.Add(male.Rotations[i]);
                 }
             }
-            
+
             return new List<Individual>
             {
                new Individual {
@@ -222,7 +230,7 @@ namespace SvgNest
                 }
 
                 var result = a.Fitness.Value - b.Fitness.Value;
-                return result>0?1:(result<0?-1:0);
+                return result > 0 ? 1 : (result < 0 ? -1 : 0);
             });
 
             // fittest individual is preserved in the new generation (elitism)

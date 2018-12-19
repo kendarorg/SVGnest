@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -19,8 +20,13 @@ namespace SvgNest
 
     public class SvgNest
     {
-        private Dictionary<string, List<Polygon>> _nfpCache = new Dictionary<string, List<Polygon>>();
-        private Commons _commons = new Commons();
+        public SvgNest(Commons commons, NestRandom random)
+        {
+            _commons = commons;
+            _random = random;
+        }
+        private ConcurrentDictionary<string, List<Polygon>> _nfpCache = new ConcurrentDictionary<string, List<Polygon>>();
+        private Commons _commons;
         private SvgNestConfig _config = new SvgNestConfig();
         private GeneticAlgorithm _geneticAlgorithm;
         private double _progress = 0;
@@ -32,12 +38,13 @@ namespace SvgNest
         private Action<object> _progressCallback = Console.WriteLine;
         private Action<object, object, object> _displayCallback = (a, b, c) => { };
         private Polygon _bin;
-        private List<Polygon> _parts;
+        //private List<Polygon> _parts;
         private Polygon _binPolygon;
         private Individual _individual;
         private Rect _binBounds;
         private Placement _best;
         private SvgElementCollection _svgCollection;
+        private NestRandom _random;
 
         // converts a polygon from normal float coordinates to integer coordinates used by clipper, as well as x/y -> X/Y
         private Path _svgToClipper(Polygon polygon)
@@ -255,13 +262,13 @@ namespace SvgNest
 
         // progressCallback is called when _progress is made
         // displayCallback is called when a new placement has been made
-        public IEnumerable<List<Polygon>> start(Action<object> progressCallback, Action<object, object, object> displayCallback)
+        public IEnumerable<List<Polygon>> Start()
         {
-            if (null == _svg || null == _bin)
+            /*if (null == _svg || null == _bin)
             {
                 return null;
-            }
-            if (!preparePolygons(progressCallback, displayCallback)) return null;
+            }*/
+            if (!preparePolygons()) return null;
 
             this.working = false;
 
@@ -272,24 +279,62 @@ namespace SvgNest
 
             //_commons.log("Before _launchWorkers ", _tree, _binPolygon);
             var result = this._launchWorkers(_tree, _binPolygon).ToList();
+            foreach (var item in result)
+            {
+                foreach (var poly in item)
+                {
+                    Round(poly);
+                }
+            }
             //_commons.log("Result", result);
             return result;
         }
 
-        private bool preparePolygons(Action<object> progressCallback, Action<object, object, object> displayCallback)
+        private static double _tol = Math.Pow(10, -8); // Floating point error is likely to be above 1 epsilon
+        private void Round(Polygon poly)
         {
-            if (null != progressCallback)
+            poly.X = RoundI(poly.X, _tol);
+            poly.Y = RoundI(poly.Y, _tol);
+            foreach (var pt in poly.Points)
             {
-                _progressCallback = progressCallback;
+                pt.X = RoundI(pt.X, _tol);
+                pt.Y = RoundI(pt.Y, _tol);
             }
 
-            if (null != displayCallback)
+            if (poly.Children == null) return;
+            foreach (var sub in poly.Children)
             {
-                _displayCallback = displayCallback;
+                Round(sub);
             }
+        }
+
+        public static double RoundI(double number, double roundingInterval)
+        {
+
+            if (roundingInterval == 0.0)
+            {
+                throw new Exception();
+            }
+
+            double intv = Math.Abs(roundingInterval);
+            double sign = Math.Sign(number);
+            double val = Math.Abs(number);
+
+            double valIntvRatio = val / intv;
+            double k = Math.Floor(valIntvRatio);
+            double m = valIntvRatio - k;
+
+            bool mGreaterThanMidPoint = ((m - 0.5) >= 1e-14) ? true : false;
+            bool mInMidpoint = (Math.Abs(m - 0.5) < 1e-14) ? true : false;
+            return (mGreaterThanMidPoint || mInMidpoint) ? sign * ((k + 1) * intv) : sign * (k * intv);
+        }
+
+        private bool preparePolygons()
+        {
+            
 
             //_parts = Array.prototype.slice.call(_svg.children);
-            _parts = new List<Polygon>();
+            /*_parts = new List<Polygon>();
             for (var x = 0; x < _svg.Count; x++)
             {
                 _parts.Add(_svg[x]);
@@ -301,12 +346,12 @@ namespace SvgNest
             {
                 // don't process bin as a part of the _tree
                 _parts.splice(binindex, 1);
-            }
+            }*/
 
             //_commons.log("preparePolygons _parts ", _parts);
 
             // build _tree without bin
-            _tree = this._getParts(_parts.slice(0));
+           // _tree = this._getParts(_parts.slice(0));
 
 
             //            _commons.log("preparePolygons _tree ", _tree);
@@ -629,7 +674,7 @@ namespace SvgNest
 
                 //_commons.log("_launchWorkers sortede adams ", adam);
 
-                _geneticAlgorithm = new GeneticAlgorithm();
+                _geneticAlgorithm = new GeneticAlgorithm(_commons,_random);
                 _geneticAlgorithm.init(adam, binPolygonLocal, _config);
             }
 
@@ -665,7 +710,7 @@ namespace SvgNest
             //_commons.log("Placelist _launchWorkers ",placelist, rotations);
             var nfpPairs = new List<NfpPair>();
             NfpCacheKey key;
-            var newCache = new Dictionary<string, List<Polygon>>();
+            var newCache = new ConcurrentDictionary<string, List<Polygon>>();
 
             for (var i = 0; i < placelist.Count; i++)
             {
@@ -727,14 +772,16 @@ namespace SvgNest
 
         private IEnumerable<List<Polygon>> generatePlacements(Polygon binPolygonLocal, List<int> ids, List<double> rotations, List<NfpPair> nfpPairs, List<Polygon> placelist)
         {
-            var worker = new PlacementWorker(binPolygonLocal, ids, rotations, _config);
+            var worker = new PlacementWorker(_commons,binPolygonLocal, ids, rotations, _config);
 
             var spawncount = 0;
 
-            var generatedNfp = new List<Pair>();
+            
             var generatedPlacements = new List<List<Polygon>>();
-            for (var w = 0; w < _config.iterations; w++)
+            Parallel.ForEach(Enumerable.Repeat(0d, _config.iterations).ToList(), (w) =>
+                //for (var w = 0; w < _config.iterations; w++)
             {
+                var generatedNfp = new List<Pair>();
                 List<Polygon> res = null;
                 try
                 {
@@ -756,7 +803,7 @@ namespace SvgNest
                 {
                     generatedPlacements.Add(res);
                 }
-            }
+            });
 
             return generatedPlacements;
         }
@@ -786,9 +833,9 @@ namespace SvgNest
             //var k = 0;
             var clone = new List<Polygon>();
             //create a copy of the list of items
-            for (i = 0; i < _parts.Count; i++)
+            for (i = 0; i < _tree.Count; i++)
             {
-                clone.Add(_parts[i].Clone(false));
+                clone.Add(_tree[i].Clone(false));
             }
 
             var svglist = new List<Polygon>();
@@ -816,7 +863,7 @@ namespace SvgNest
                 for (j = 0; j < placement[i].Count; j++)
                 {
                     var p = placement[i][j];
-                    var part = GeometryUtil.RotatePolygon(_tree[p.Id + 1], p.Rotation, true);
+                    var part = GeometryUtil.RotatePolygon(_tree[p.Id], p.Rotation, true);
                     part = GeometryUtil.OffsetPolygon(part, p.X, p.Y, true);
 
                     part.X = 0;
@@ -1026,7 +1073,7 @@ namespace SvgNest
 
 
 
-        public List<Polygon> parsesvg(List<Polygon> svg)
+        /*public List<Polygon> parsesvg(List<Polygon> svg)
         {
             _svg = svg;
             _tree = _getParts(_svg);
@@ -1040,8 +1087,7 @@ namespace SvgNest
                 return;
             }
             _bin = element;
-        }
-
+        /*
         public List<SvgDocument> ToSvg(List<List<Polygon>> result,SvgDocument src)
         {
             foreach (var block in result)
@@ -1054,6 +1100,66 @@ namespace SvgNest
 
 
             }
+        }*/
+        public void Initialize(Polygon bin, List<Polygon> data, Action<object> progressCallback, Action<object, object, object> displayCallback)
+        {
+            var maxBin = GetMax(bin);
+            var realData = new List<Polygon>();
+            foreach (var item in data)
+            {
+                var min = GetMin(item);
+                if (min > maxBin)
+                {
+                    realData.Add(item.Clone());
+                }
+                else
+                {
+                    var delta = maxBin - min;
+                    var realItem = GeometryUtil.OffsetPolygon(item, delta, 0, true);
+                    realData.Add(realItem);
+                    maxBin = GetMax(realItem);
+                }
+            }
+            _tree = _getParts(realData);
+            _bin = bin.Clone();
+            if (null != progressCallback)
+            {
+                _progressCallback = progressCallback;
+            }
+
+            if (null != displayCallback)
+            {
+                _displayCallback = displayCallback;
+            }
+        }
+
+        private double GetMax(Polygon bin)
+        {
+            double max = double.MinValue;
+            foreach (var point in bin.Points)
+            {
+                var position = point.X + bin.X;
+                if (position > max)
+                {
+                    max = position;
+                }
+            }
+
+            return max + 1;
+        }
+        private double GetMin(Polygon bin)
+        {
+            double min = double.MaxValue;
+            foreach (var point in bin.Points)
+            {
+                var position = point.X + bin.X;
+                if (position < min)
+                {
+                    min = position;
+                }
+            }
+
+            return min;
         }
     }
 }
